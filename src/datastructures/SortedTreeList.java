@@ -60,6 +60,44 @@ public class SortedTreeList<T extends Comparable<T>> {
         doInsert(data);
     }
 
+    public boolean contains(final T data) {
+        return doFind(data) != null;
+    }
+
+    public ListNode<T> find(final T data) {
+        return doFind(data);
+    }
+
+    public ListNode<T> findFirst(final T data) {
+        Node closests = findClosest(data, true);
+        if (closests != null && closests.next != null && closests.next.data.equals(data)) {
+            return closests.next;
+        }
+        return null;
+    }
+
+    public ListNode<T> findLast(final T data) {
+        Node closests = findClosest(data, false);
+        if (closests != null && closests.prev != null && closests.prev.data.equals(data)) {
+            return closests.prev;
+        }
+        return null;
+    }
+
+    public T popFirst() {
+        if (head == null) {
+            return null;
+        }
+        return popNode(head);
+    }
+
+    public T popLast() {
+        if (tail == null) {
+            return null;
+        }
+        return popNode(tail);
+    }
+
     public Iterator<T> iterator() {
         return new TreeListIterator(head);
     }
@@ -110,13 +148,12 @@ public class SortedTreeList<T extends Comparable<T>> {
         n.height = 1 + Math.max(n.left != null ? n.left.height : -1L, n.right != null ? n.right.height : -1);
     }
 
-    private void swapInParent(final Node n, final Node newChild) {
-        newChild.parent = n.parent;
-        if (n.parent != null) {
-            if (n.parent.left == n) {
-                n.parent.left = newChild;
+    private void swapChild(final Node parent, final Node currentChild, final Node newChild) {
+        if (parent != null) {
+            if (parent.left == currentChild) {
+                parent.left = newChild;
             } else {
-                n.parent.right = newChild;
+                parent.right = newChild;
             }
         } else {
             root = newChild;
@@ -128,7 +165,8 @@ public class SortedTreeList<T extends Comparable<T>> {
         n.right = newRoot.left;
         newRoot.left = n;
 
-        swapInParent(n, newRoot);
+        swapChild(n.parent, n, newRoot);
+        newRoot.parent = n.parent;
         n.parent = newRoot;
         if (n.right != null) {
             n.right.parent = n;
@@ -145,7 +183,8 @@ public class SortedTreeList<T extends Comparable<T>> {
         n.left = newRoot.right;
         newRoot.right = n;
 
-        swapInParent(n, newRoot);
+        swapChild(n.parent, n, newRoot);
+        newRoot.parent = n.parent;
         n.parent = newRoot;
         if (n.left != null) {
             n.left.parent = n;
@@ -204,12 +243,13 @@ public class SortedTreeList<T extends Comparable<T>> {
         while (target != null) {
             current = target;
 
-            if (data.compareTo(current.data) < 0) {
+            int comparison = data.compareTo(current.data);
+            if (comparison < 0) {
                 target = current.left;
                 if (current.left == null) {
                     newNode = insertLeftInTree(current, data);
                 }
-            } else if (data.compareTo(current.data) > 0) {
+            } else if (comparison > 0) {
                 target = current.right;
                 if (current.right == null) {
                     newNode = insertRightInTree(current, data);
@@ -227,6 +267,149 @@ public class SortedTreeList<T extends Comparable<T>> {
         andjustAndBalanceUpToRoot(current);
 
         return newNode;
+    }
+
+    private Node doFind(final T data) {
+        Node current = root;
+
+        while (current != null) {
+            int comparison = data.compareTo(current.data);
+            if (comparison < 0) {
+                current = current.left;
+            } else if (comparison > 0) {
+                current = current.right;
+            } else {
+                return current;
+            }
+        }
+
+        return null;
+    }
+
+    private Node findClosest(final T data, final boolean before) {
+        Node current = null;
+        Node target = root;
+
+        while (target != null) {
+            current = target;
+
+            int comparison = data.compareTo(current.data);
+            if (comparison < 0 || (before && comparison == 0)) {
+                target = current.left;
+            } else if (comparison > 0 || (!before && comparison == 0)) {
+                target = current.right;
+            }
+        }
+
+        return current;
+    }
+
+    private void swapNodesTreePointers(final Node n1, final Node n2) {
+        Node tmp = n1.parent;
+        n1.parent = n2.parent;
+        n1.parent = tmp;
+
+        tmp = n1.left;
+        n1.left = n2.left;
+        n1.left = tmp;
+
+        tmp = n1.right;
+        n1.right = n2.right;
+        n1.right = tmp;
+    }
+
+    private void swapNodesInTree(final Node n1, final Node n2) {
+        if (n2.parent == n1) {
+            swapChild(n1.parent, n1, n2);
+            if (n2.left != null) {
+                n2.left.parent = n1;
+            }
+            if (n2.right != null) {
+                n2.right.parent = n1;
+            }
+            if (n1.left == n2) {
+                if (n1.right != null) {
+                    n1.right.parent = n2;
+                }
+            } else {
+                if (n1.left != null) {
+                    n1.left.parent = n2;
+                }
+            }
+            swapNodesTreePointers(n1, n2);
+        } else if (n1.parent == n2) {
+            swapNodesInTree(n2, n1);
+        } else {
+            swapChild(n1.parent, n1, n2);
+            swapChild(n2.parent, n2, n1);
+            if (n1.left != null) {
+                n1.left.parent = n2;
+            }
+            if (n1.right != null) {
+                n1.right.parent = n2;
+            }
+            if (n2.left != null) {
+                n2.left.parent = n1;
+            }
+            if (n2.right != null) {
+                n2.right.parent = n1;
+            }
+            swapNodesTreePointers(n1, n2);
+        }
+    }
+
+    private void removeNodeInList(final Node n) {
+        if (n.prev == null) {
+            head = n.next;
+        } else {
+            n.prev.next = n.next;
+        }
+
+        if (n.next == null) {
+            tail = n.prev;
+        } else {
+            n.next.prev = n.prev;
+        }
+
+        n.prev = n.next = null;
+    }
+
+    private void removeNodeInTree(final Node n) {
+        if (n.left == null || n.right == null) {
+
+            final Node parent = n.parent;
+            if (n.left != null)  {
+                n.left.parent = parent;
+                swapChild(parent, n, n.left);
+            } else if (n.right != null) {
+                n.right.parent = parent;
+                swapChild(parent, n, n.right);
+            } else {
+                swapChild(parent, n, null);
+            }
+
+            n.left = n.right = n.parent = null;
+            n.height = 0;
+            andjustAndBalanceUpToRoot(parent);
+
+        } else {
+            final Node target = n.next;
+            swapNodesInTree(n, target);
+            removeNodeInTree(n);
+        }
+    }
+
+    private void removeNode(final Node n) {
+        removeNodeInTree(n);
+        removeNodeInList(n);
+        n.data = null;
+        size--;
+    }
+
+    private T popNode(final Node n) {
+        final T result = n.data;
+        removeNode(n);
+        return result;
     }
 
 

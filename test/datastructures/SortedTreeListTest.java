@@ -13,63 +13,114 @@ class SortedTreeListTest {
 
     private Random random = new Random();
 
-    /*
-    @Test
-    void test() {
-		TreeList<Integer> treeList = new TreeList<>();
-
-		treeList.insert(4);
-		treeList.insert(1);
-        treeList.insert(8);
-		treeList.insert(5);
-		treeList.insert(3);
-		treeList.insert(2);
-        treeList.insert(7);
-        treeList.insert(9);
-        treeList.insert(6);
-
-		System.out.println("Size: " + treeList.size());
-		Iterator<Integer> i = treeList.iterator();
-		while (i.hasNext()) {
-		    System.out.println("--> " + i.next());
-		}
-
-		Assert.assertTrue(isBalanced(treeList.getRoot()));
-	}
-	*/
 
     @Test
-    void test1() {
-	    final int[] baseArr = getSecuentialTestingArray();
-	    final int[] testArr = copyAndScrambleArray(baseArr);
-
+    void testSize() {
         final SortedTreeList<Integer> sortedTreeList = new SortedTreeList<>();
-        for (int i = 0; i < testArr.length; i++) {
-            sortedTreeList.insert(testArr[i]);
-        }
 
-        final int[] resultArr = getArrayFromSortedTreeList(sortedTreeList);
-        Assert.assertEquals(baseArr.length, sortedTreeList.size());
-        Assert.assertArrayEquals(baseArr, resultArr);
-        Assert.assertTrue(isBalanced(sortedTreeList.getRoot()));
-	}
+        final Integer[] testSampleArray = getSampleArrayWithUniqueElements(1);
+        insertElementsFromArray(testSampleArray, sortedTreeList);
+
+        Assert.assertEquals(testSampleArray.length, sortedTreeList.size());
+    }
 
     @Test
-    void test2() {
-        final int[] testArr = getRandomArray();
+    void testSize_withNoElements() {
+        final SortedTreeList<Integer> sortedTreeList = new SortedTreeList<>();
 
-        final SortedTreeList<Integer> sortedTreeList = new SortedTreeList<>(true);
-        for (int i = 0; i < testArr.length; i++) {
-            sortedTreeList.insert(testArr[i]);
+        Assert.assertEquals(0, sortedTreeList.size());
+    }
+
+    @Test
+    void testInsert() {
+        final SortedTreeList<Integer> sortedTreeList = new SortedTreeList<>();
+
+        final Integer[] testSampleArray = getSampleArrayWithUniqueElements(1);
+        for (int i = 0; i < testSampleArray.length; i++) {
+            sortedTreeList.insert(testSampleArray[i]);
         }
 
-        final int[] resultArr = getArrayFromSortedTreeList(sortedTreeList);
-        Arrays.sort(testArr);
-        Assert.assertEquals(testArr.length, sortedTreeList.size());
-        Assert.assertArrayEquals(testArr, resultArr);
+        final Integer[] resultArray
+            = getArrayFromSortedTreeList(sortedTreeList, new Integer[(int) sortedTreeList.size()]);
+        Arrays.sort(testSampleArray);
+
+        Assert.assertArrayEquals(testSampleArray, resultArray);
         Assert.assertTrue(isBalanced(sortedTreeList.getRoot()));
     }
 
+    @Test
+    void testInsert_withRepetitionsAllowed() {
+        final SortedTreeList<Integer> sortedTreeList = new SortedTreeList<>(true);
+
+        final Integer[] testSampleArray = getSampleArray(1);
+        for (int i = 0; i < testSampleArray.length; i++) {
+            sortedTreeList.insert(testSampleArray[i]);
+        }
+
+        final Integer[] resultArray
+            = getArrayFromSortedTreeList(sortedTreeList, new Integer[(int) sortedTreeList.size()]);
+        Arrays.sort(testSampleArray);
+
+        Assert.assertArrayEquals(testSampleArray, resultArray);
+        Assert.assertTrue(isBalanced(sortedTreeList.getRoot()));
+    }
+
+    @Test
+    void testFirstAndLast() {
+        final SortedTreeList<Integer> sortedTreeList = new SortedTreeList<>();
+
+        final Integer[] testSampleArray = getSampleArrayWithUniqueElements(1);
+        insertElementsFromArray(testSampleArray, sortedTreeList);
+        final Integer first = sortedTreeList.first();
+        final Integer last = sortedTreeList.last();
+
+        Arrays.sort(testSampleArray);
+
+        Assert.assertEquals(testSampleArray[0], first);
+        Assert.assertEquals(testSampleArray[testSampleArray.length - 1], last);
+    }
+
+    @Test
+    void testFirstAndLast_whenNoElements() {
+        final SortedTreeList<Integer> sortedTreeList = new SortedTreeList<>();
+
+        final Integer first = sortedTreeList.first();
+        final Integer last = sortedTreeList.last();
+
+        Assert.assertNull(first);
+        Assert.assertNull(last);
+    }
+
+    private Integer[] getSampleArrayWithUniqueElements(final int minSize) {
+        final int n = random.nextInt(MAX_SIZE - minSize + 1) + minSize;
+        final Integer[] array = new Integer[n];
+
+        for (int i = 0; i < n; i++) {
+            array[i] = i;
+        }
+
+        for (int i = 0; i < n; i++) {
+            int j = random.nextInt(n);
+            int tmp = array[i];
+            array[i] = array[j];
+            array[j] = tmp;
+        }
+
+        return array;
+    }
+
+    private Integer[] getSampleArray(final int minSize) {
+        final int n = random.nextInt(MAX_SIZE - minSize + 1) + minSize;
+        final Integer[] array = new Integer[n];
+
+        for (int i = 0; i < n; i++) {
+            array[i] = random.nextInt(n);
+        }
+
+        return array;
+    }
+
+    /*
     private int[] getSecuentialTestingArray() {
         final int n = random.nextInt(MAX_SIZE) + 1;
         final int[] array = new int[n];
@@ -81,8 +132,8 @@ class SortedTreeListTest {
         return array;
     }
 
-    private int[] getRandomArray() {
-        final int n = random.nextInt(MAX_SIZE) + 1;
+    private int[] getRandomArray(final int minSize, final int maxSize) {
+        final int n = random.nextInt(maxSize - minSize + 1) + minSize;
         final int[] array = new int[n];
 
         for (int i = 0; i < n; i++) {
@@ -92,26 +143,39 @@ class SortedTreeListTest {
         return array;
     }
 
+    private int[] getRandomArray() {
+        return getRandomArray(1, MAX_SIZE);
+    }
+
     private int[] copyAndScrambleArray(final int[] array) {
-        final int n = array.length;
-
         final int[] scrambled = Arrays.copyOf(array, array.length);
-
-        for (int i = 0; i < n; i++) {
-            int j = random.nextInt(n);
-            int tmp = scrambled[i];
-            scrambled[i] = scrambled[j];
-            scrambled[j] = tmp;
-        }
-
+        scrambleArray(scrambled);
         return scrambled;
     }
 
-    private int[] getArrayFromSortedTreeList(final SortedTreeList<Integer> sortedTreeList) {
-        final Iterator<Integer> iterator = sortedTreeList.iterator();
-        final int[] array = new int[(int) sortedTreeList.size()];
-        int i = 0;
+    private void scrambleArray(final int[] array) {
+        int n = array.length;
+        for (int i = 0; i < n; i++) {
+            int j = random.nextInt(n);
+            int tmp = array[i];
+            array[i] = array[j];
+            array[j] = tmp;
+        }
+    }
+    */
 
+    private <T extends Comparable<T>> void insertElementsFromArray(
+            final T[] array, final SortedTreeList<T> sortedTreeList) {
+        for (int i = 0; i < array.length; i++) {
+            sortedTreeList.insert(array[i]);
+        }
+    }
+
+    private <T extends Comparable<T>> T[] getArrayFromSortedTreeList(
+            final SortedTreeList<T> sortedTreeList, final T[] array) {
+        final Iterator<T> iterator = sortedTreeList.iterator();
+
+        int i = 0;
         while (iterator.hasNext()) {
             array[i++] = iterator.next();
         }
