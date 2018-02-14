@@ -69,19 +69,11 @@ public class SortedTreeList<T extends Comparable<T>> {
     }
 
     public ListNode<T> findFirst(final T data) {
-        Node closests = findClosest(data, true);
-        if (closests != null && closests.next != null && closests.next.data.equals(data)) {
-            return closests.next;
-        }
-        return null;
+        return findFirstFirstOrLast(data, true);
     }
 
     public ListNode<T> findLast(final T data) {
-        Node closests = findClosest(data, false);
-        if (closests != null && closests.prev != null && closests.prev.data.equals(data)) {
-            return closests.prev;
-        }
-        return null;
+        return findFirstFirstOrLast(data, false);
     }
 
     public T popFirst() {
@@ -96,6 +88,13 @@ public class SortedTreeList<T extends Comparable<T>> {
             return null;
         }
         return popNode(tail);
+    }
+
+    public void remove(final T data) {
+        final Node current = doFind(data);
+        if (current != null) {
+            removeNode(current);
+        }
     }
 
     public Iterator<T> iterator() {
@@ -304,18 +303,51 @@ public class SortedTreeList<T extends Comparable<T>> {
         return current;
     }
 
+    private ListNode<T> findFirstFirstOrLast(final T data, final boolean first) {
+        Node closests = findClosest(data, first);
+        if (closests != null) {
+            if (closests.data.equals(data)) {
+                return closests;
+            } else if (first && closests.next != null && closests.next.data.equals(data)) {
+                return closests.next;
+            } else if (!first && closests.prev != null && closests.prev.data.equals(data)) {
+                return closests.prev;
+            }
+        }
+        return null;
+    }
+
     private void swapNodesTreePointers(final Node n1, final Node n2) {
         Node tmp = n1.parent;
         n1.parent = n2.parent;
-        n1.parent = tmp;
+        n2.parent = tmp;
 
         tmp = n1.left;
         n1.left = n2.left;
-        n1.left = tmp;
+        n2.left = tmp;
 
         tmp = n1.right;
         n1.right = n2.right;
-        n1.right = tmp;
+        n2.right = tmp;
+    }
+
+    private void swapNodesTreePointersParentChild(final Node parent, final Node child) {
+        child.parent = parent.parent;
+        parent.parent = child;
+
+        if (parent.left == child) {
+            parent.left = child.left;
+            child.left = parent;
+            Node tmp = child.right;
+            child.right = parent.right;
+            parent.right = tmp;
+        } else {
+            parent.right = child.right;
+            child.right = parent;
+            Node tmp = child.left;
+            child.left = parent.left;
+            parent.left = tmp;
+        }
     }
 
     private void swapNodesInTree(final Node n1, final Node n2) {
@@ -336,7 +368,7 @@ public class SortedTreeList<T extends Comparable<T>> {
                     n1.left.parent = n2;
                 }
             }
-            swapNodesTreePointers(n1, n2);
+            swapNodesTreePointersParentChild(n1, n2);
         } else if (n1.parent == n2) {
             swapNodesInTree(n2, n1);
         } else {
@@ -393,8 +425,7 @@ public class SortedTreeList<T extends Comparable<T>> {
             andjustAndBalanceUpToRoot(parent);
 
         } else {
-            final Node target = n.next;
-            swapNodesInTree(n, target);
+            swapNodesInTree(n, n.next);
             removeNodeInTree(n);
         }
     }
